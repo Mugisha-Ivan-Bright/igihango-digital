@@ -3,13 +3,27 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  // Update this to your backend URL
-  static const String baseUrl = 'http://localhost:8000';
+  // IMPORTANT: Change this if backend is on different host
+  // For local development: http://localhost:8000
+  // For production: https://your-backend-url.com
+  static const String baseUrl = 'http://127.0.0.1:8000';
   
   // Get auth token from storage
   static Future<String?> _getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString('auth_token');
+  }
+  
+  // Save auth token to storage
+  static Future<void> _saveToken(String token) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+  }
+  
+  // Clear auth token from storage
+  static Future<void> clearToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
   }
   
   // Get headers with auth token
@@ -19,6 +33,81 @@ class ApiService {
       'Content-Type': 'application/json',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+  }
+  
+  // Login
+  static Future<LoginResponse?> login(String nationalId, String password) async {
+    try {
+      print('Attempting login for: $nationalId');
+      final response = await http.post(
+        Uri.parse('$baseUrl/auth/login'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'national_id': nationalId,
+          'password': password,
+        }),
+      );
+      
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final loginResponse = LoginResponse.fromJson(data);
+        
+        // Save token and user data
+        await _saveToken(loginResponse.accessToken);
+        await _saveUserData(loginResponse.user);
+        
+        print('Login successful! Token and user data saved.');
+        return loginResponse;
+      } else {
+        print('Login failed with status: ${response.statusCode}');
+        return null;
+      }
+    } catch (e) {
+      print('Error during login: $e');
+      return null;
+    }
+  }
+  
+  // Save user data to storage
+  static Future<void> _saveUserData(UserData user) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_data', json.encode({
+      'id': user.id,
+      'national_id': user.nationalId,
+      'full_name': user.fullName,
+      'role': user.role,
+      'sector_id': user.sectorId,
+      'sector_name': user.sectorName,
+      'phone': user.phone,
+      'avatar_url': user.avatarUrl,
+      'is_active': user.isActive,
+    }));
+  }
+  
+  // Get current user data
+  static Future<UserData?> getCurrentUser() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userDataString = prefs.getString('user_data');
+      if (userDataString != null) {
+        final userData = json.decode(userDataString);
+        return UserData.fromJson(userData);
+      }
+      return null;
+    } catch (e) {
+      print('Error getting current user: $e');
+      return null;
+    }
+  }
+  
+  // Logout
+  static Future<void> logout() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    await prefs.remove('user_data');
   }
   
   // Get district stats
@@ -241,6 +330,24 @@ class ImihigoData {
       status: json['status'],
       progress: (json['progress'] ?? 0.0).toDouble(),
       createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+}
+
+
+class LoginResponse {
+  final String accessToken;
+  final UserData user;
+  
+  LoginResponse({
+    required this.accessToken,
+    required this.user,
+  });
+  
+  factory LoginResponse.fromJson(Map<String, dynamic> json) {
+    return LoginResponse(
+      accessToken: json['access_token'],
+      user: UserData.fromJson(json['user']),
     );
   }
 }

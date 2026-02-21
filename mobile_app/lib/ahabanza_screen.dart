@@ -25,6 +25,7 @@ class _AhabanzaScreenState extends State<AhabanzaScreen> with TickerProviderStat
   List<SectorData> _sectors = [];
   bool _isLoading = true;
   String? _errorMessage;
+  UserData? _currentUser;
 
   @override
   void initState() {
@@ -45,6 +46,15 @@ class _AhabanzaScreenState extends State<AhabanzaScreen> with TickerProviderStat
     );
     
     _animationController.forward();
+    
+    // Load current user and fetch data
+    _loadUserAndData();
+  }
+  
+  Future<void> _loadUserAndData() async {
+    // Get current user
+    _currentUser = await ApiService.getCurrentUser();
+    print('Current user: ${_currentUser?.fullName} (${_currentUser?.role})');
     
     // Fetch data from backend
     _loadData();
@@ -318,13 +328,31 @@ class _AhabanzaScreenState extends State<AhabanzaScreen> with TickerProviderStat
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          "District Health",
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 16,
-                            letterSpacing: 0.5,
-                          ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_currentUser != null) ...[
+                              Text(
+                                "Muraho, ${_currentUser!.fullName.split(' ').first}",
+                                style: TextStyle(
+                                  color: accentGold,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                            ],
+                            Text(
+                              _currentUser?.role == 'MAYOR' 
+                                  ? "District Health" 
+                                  : "${_currentUser?.sectorName ?? 'Sector'} Health",
+                              style: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 16,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
                         ),
                         Text(
                           "${stats?.totalSectors ?? 0} Sectors",

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'profile_settings_detail.dart';
+import 'services/api_service.dart';
 
 class ProfileHubPage extends StatelessWidget {
   const ProfileHubPage({super.key});
@@ -74,8 +75,13 @@ class ProfileHubPage extends StatelessWidget {
             SizedBox(
               width: double.infinity,
               child: TextButton(
-                onPressed: () {
-                  Navigator.pushReplacementNamed(context, '/');
+                onPressed: () async {
+                  // Clear user data and token
+                  await ApiService.logout();
+                  // Navigate to login
+                  if (context.mounted) {
+                    Navigator.pushReplacementNamed(context, '/');
+                  }
                 },
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
