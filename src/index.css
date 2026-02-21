@@ -1,0 +1,21 @@
+@import "tailwindcss";
+
+@theme {
+  --color-midnight: #0A192F;
+  --color-gold: #FFD700;
+  --color-surface: #112240;
+  --color-cyan: #64FFDA;
+  --font-inter: "Inter", sans-serif;
+}
+
+:root {
+  background-color: var(--color-midnight);
+  color: white;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
